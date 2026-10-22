@@ -1,13 +1,15 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.3",
   "name": "Secret Case Master",
   "identifier": "secret_case_master",
   "author": "Private",
-  "description": "Creates and preserves secret detective case solutions for Lumiverse.",
+  "github": "https://github.com/YOUR-USERNAME/lumiverse-secret-case-master",
+  "homepage": "https://github.com/YOUR-USERNAME/lumiverse-secret-case-master",
+  "description": "Persistent, spoiler-protected mysteries with a fixed culprit.",
   "permissions": [
     "generation",
     "interceptor"
   ],
   "entry_backend": "dist/backend.js",
-  "interceptorTimeoutMs": 90000
+  "interceptorTimeoutMs": 120000
 }

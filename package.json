@@ -1,10 +1,11 @@
 {
   "name": "lumiverse-secret-case-master",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun build src/backend.ts --outfile dist/backend.js --target bun"
+    "build": "bun build src/backend.ts --outfile dist/backend.js --target bun",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "lumiverse-spindle-types": "latest",
