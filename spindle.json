@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "name": "Secret Case Master",
+  "identifier": "secret_case_master",
+  "author": "Private",
+  "description": "Creates and preserves secret detective case solutions for Lumiverse.",
+  "permissions": [
+    "generation",
+    "interceptor"
+  ],
+  "entry_backend": "dist/backend.js",
+  "interceptorTimeoutMs": 90000
+}
