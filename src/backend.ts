@@ -68,7 +68,12 @@ function extractGenerationText(response: unknown): string {
   throw new Error('Case generation returned no recognizable text content')
 }
 
-async function createCase(theme: string, signal?: AbortSignal): Promise<CaseFile> {
+async function createCase(
+  theme: string,
+  userId: string,
+  signal?: AbortSignal
+): Promise<CaseFile> {
+
   const systemPrompt = `You are a private murder-mystery designer for a Project Moon detective RPG.
 Return ONLY one valid JSON object, no markdown and no explanation, with these exact fields:
 {
@@ -98,6 +103,7 @@ RULES:
     try {
       const response: unknown = await spindle.generate.quiet({
         type: 'quiet',
+        userId,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: theme },
@@ -115,7 +121,12 @@ RULES:
   throw lastError instanceof Error ? lastError : new Error('Could not create a valid case')
 }
 
-async function loadOrCreate(chatId: string, theme: string, signal?: AbortSignal): Promise<CaseFile> {
+async function loadOrCreate(
+  chatId: string,
+  theme: string,
+  userId: string,
+  signal?: AbortSignal
+): Promise<CaseFile> {
   const path = casePath(chatId)
   const active = locks.get(chatId)
   if (active) return active
@@ -127,7 +138,7 @@ async function loadOrCreate(chatId: string, theme: string, signal?: AbortSignal)
       return saved
     }
     spindle.log.info('Case Master: creating case')
-    const mystery = await createCase(theme, signal)
+    const mystery = await createCase(theme, userId, signal)
     signal?.throwIfAborted()
     await spindle.storage.write(path, JSON.stringify(mystery))
     spindle.log.info('Case Master: saved secret case successfully')
@@ -150,10 +161,29 @@ spindle.registerInterceptor(async (messages, context) => {
   if (!asksStart && !alreadyExists) return messages
 
   const theme = asksStart ? latestText.replace(START, '').trim() : ''
-  const caseFile = await loadOrCreate(
-    chatId, theme || 'Create an atmospheric detective mystery in Project Moon\'s City.',
-    context.signal
+const scopedContext = context as typeof context & {
+  userId?: string
+}
+
+const userId = scopedContext.userId
+
+if (!userId) {
+  spindle.log.error(
+    'Case Master: userId unavailable. ' +
+    'Install as a user-scoped extension or ' +
+    'configure a supported user identity source.'
   )
+  throw new Error(
+    'Case Master requires a verified userId'
+  )
+}
+
+const caseFile = await loadOrCreate(
+  chatId,
+  theme || 'Create an atmospheric detective mystery in Project Moon\'s City.',
+  userId,
+  context.signal
+)
   context.signal?.throwIfAborted()
 
   const firstTurn = asksStart && !alreadyExists

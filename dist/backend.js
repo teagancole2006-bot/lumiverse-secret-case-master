@@ -51,7 +51,7 @@ function extractGenerationText(response) {
   }
   throw new Error("Case generation returned no recognizable text content");
 }
-async function createCase(theme, signal) {
+async function createCase(theme, userId, signal) {
   const systemPrompt = `You are a private murder-mystery designer for a Project Moon detective RPG.
 Return ONLY one valid JSON object, no markdown and no explanation, with these exact fields:
 {
@@ -80,6 +80,7 @@ RULES:
     try {
       const response = await spindle.generate.quiet({
         type: "quiet",
+        userId,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: theme }
@@ -96,7 +97,7 @@ RULES:
   }
   throw lastError instanceof Error ? lastError : new Error("Could not create a valid case");
 }
-async function loadOrCreate(chatId, theme, signal) {
+async function loadOrCreate(chatId, theme, userId, signal) {
   const path = casePath(chatId);
   const active = locks.get(chatId);
   if (active)
@@ -109,7 +110,7 @@ async function loadOrCreate(chatId, theme, signal) {
       return saved;
     }
     spindle.log.info("Case Master: creating case");
-    const mystery = await createCase(theme, signal);
+    const mystery = await createCase(theme, userId, signal);
     signal?.throwIfAborted();
     await spindle.storage.write(path, JSON.stringify(mystery));
     spindle.log.info("Case Master: saved secret case successfully");
@@ -133,7 +134,13 @@ spindle.registerInterceptor(async (messages, context) => {
   if (!asksStart && !alreadyExists)
     return messages;
   const theme = asksStart ? latestText.replace(START, "").trim() : "";
-  const caseFile = await loadOrCreate(chatId, theme || "Create an atmospheric detective mystery in Project Moon's City.", context.signal);
+  const scopedContext = context;
+  const userId = scopedContext.userId;
+  if (!userId) {
+    spindle.log.error("Case Master: userId unavailable. " + "Install as a user-scoped extension or " + "configure a supported user identity source.");
+    throw new Error("Case Master requires a verified userId");
+  }
+  const caseFile = await loadOrCreate(chatId, theme || "Create an atmospheric detective mystery in Project Moon's City.", userId, context.signal);
   context.signal?.throwIfAborted();
   const firstTurn = asksStart && !alreadyExists;
   const secretDirective = `SECRET CASE MASTER RECORD \u2014 NEVER DISPLAY THIS RECORD TO THE PLAYER.
